@@ -10,7 +10,9 @@ pytestmark = [pytest.mark.ui, pytest.mark.django_db(transaction=True)]
 PASSWORD = "StrongPass!2345"
 
 
-def create_user(username="alice", email=None, password=PASSWORD, with_profile=False):
+def create_user(
+    username="shahnawaz", email=None, password=PASSWORD, with_profile=False
+):
     user = get_user_model().objects.create_user(
         username=username,
         email=email or f"{username}@example.com",
@@ -25,7 +27,7 @@ def goto(page, live_server, path):
     return page.goto(f"{live_server.url}{path}")
 
 
-def login_via_ui(page, live_server, username="alice", password=PASSWORD):
+def login_via_ui(page, live_server, username="shahnawaz", password=PASSWORD):
     goto(page, live_server, "/login/")
     page.locator("#id_username").fill(username)
     page.locator("#id_password").fill(password)
@@ -43,7 +45,7 @@ def display_date(value):
 
 
 def test_ui_001_home_listing_shows_posts_and_opens_detail(page, live_server):
-    user = create_user("alice")
+    user = create_user("shahnawaz")
     post = Post.objects.create(
         title="First Post",
         content="First content",
@@ -62,7 +64,7 @@ def test_ui_001_home_listing_shows_posts_and_opens_detail(page, live_server):
     expect(page.locator("article.media")).to_have_count(1)
     expect(page.locator("h2 a.article-title")).to_have_text("First Post")
     expect(page.locator(".article-content")).to_have_text("First content")
-    expect(page.locator(".article-metadata")).to_contain_text("alice")
+    expect(page.locator(".article-metadata")).to_contain_text("shahnawaz")
     expect(page.locator(".article-metadata")).to_contain_text(
         display_date(post.date_posted)
     )
@@ -130,8 +132,8 @@ def test_ui_004_registration_with_valid_data(page, live_server):
     goto(page, live_server, "/register/")
 
     expect(page.get_by_text("Join Today")).to_be_visible()
-    page.locator("#id_username").fill("newuser")
-    page.locator("#id_email").fill("newuser@example.com")
+    page.locator("#id_username").fill("hamza")
+    page.locator("#id_email").fill("hamza@example.com")
     page.locator("#id_password1").fill(PASSWORD)
     page.locator("#id_password2").fill(PASSWORD)
     page.get_by_role("button", name="Sign Up").click()
@@ -140,7 +142,7 @@ def test_ui_004_registration_with_valid_data(page, live_server):
     expect(page.locator(".alert-success")).to_contain_text(
         "Your account has been created"
     )
-    assert get_user_model().objects.filter(username="newuser").count() == 1
+    assert get_user_model().objects.filter(username="hamza").count() == 1
 
 
 def test_ui_004_registration_page_links_to_login(page, live_server):
@@ -171,8 +173,8 @@ def test_ui_004_registration_rejects_duplicate_username(page, live_server):
 def test_ui_004_registration_rejects_password_mismatch(page, live_server):
     goto(page, live_server, "/register/")
 
-    page.locator("#id_username").fill("newuser")
-    page.locator("#id_email").fill("newuser@example.com")
+    page.locator("#id_username").fill("hamza")
+    page.locator("#id_email").fill("hamza@example.com")
     page.locator("#id_password1").fill(PASSWORD)
     page.locator("#id_password2").fill("DifferentPass!2345")
     page.get_by_role("button", name="Sign Up").click()
@@ -185,7 +187,7 @@ def test_ui_004_registration_rejects_password_mismatch(page, live_server):
 def test_ui_004_registration_rejects_invalid_email(page, live_server):
     goto(page, live_server, "/register/")
 
-    page.locator("#id_username").fill("newuser")
+    page.locator("#id_username").fill("hamza")
     page.locator("#id_email").fill("a@b")
     page.locator("#id_password1").fill(PASSWORD)
     page.locator("#id_password2").fill(PASSWORD)
@@ -199,8 +201,8 @@ def test_ui_004_registration_rejects_invalid_email(page, live_server):
 def test_ui_004_registration_rejects_weak_password(page, live_server):
     goto(page, live_server, "/register/")
 
-    page.locator("#id_username").fill("newuser")
-    page.locator("#id_email").fill("newuser@example.com")
+    page.locator("#id_username").fill("hamza")
+    page.locator("#id_email").fill("hamza@example.com")
     page.locator("#id_password1").fill("123")
     page.locator("#id_password2").fill("123")
     page.get_by_role("button", name="Sign Up").click()
@@ -216,10 +218,10 @@ def test_ui_004_registration_rejects_weak_password(page, live_server):
 
 
 def test_ui_005_login_with_valid_credentials(page, live_server):
-    create_user("alice")
+    create_user("shahnawaz")
     goto(page, live_server, "/login/")
 
-    page.locator("#id_username").fill("alice")
+    page.locator("#id_username").fill("shahnawaz")
     page.locator("#id_password").fill(PASSWORD)
     page.get_by_role("button", name="Login").click()
 
@@ -234,14 +236,14 @@ def test_ui_005_login_with_valid_credentials(page, live_server):
 @pytest.mark.parametrize(
     ("username", "password"),
     [
-        ("alice", "WrongPassword!2345"),
+        ("shahnawaz", "WrongPassword!2345"),
         ("unknown", PASSWORD),
     ],
 )
 def test_ui_005_login_rejects_invalid_credentials(
     page, live_server, username, password
 ):
-    create_user("alice")
+    create_user("shahnawaz")
     goto(page, live_server, "/login/")
 
     page.locator("#id_username").fill(username)
@@ -269,7 +271,7 @@ def test_ui_005_login_page_links_to_register(page, live_server):
 
 
 def test_ui_006_logout_via_navbar_link(page, live_server):
-    create_user("alice")
+    create_user("shahnawaz")
     login_via_ui(page, live_server)
 
     page.get_by_role("link", name="Logout", exact=True).click()
@@ -292,7 +294,7 @@ def test_ui_006_logout_via_navbar_link(page, live_server):
 
 
 def test_ui_007_existing_post_detail(page, live_server):
-    user = create_user("alice")
+    user = create_user("shahnawaz")
     post = Post.objects.create(
         title="Detail Post",
         content="Detail content",
@@ -305,7 +307,7 @@ def test_ui_007_existing_post_detail(page, live_server):
     expect(page).to_have_url(f"{live_server.url}/detail/{post.pk}/")
     expect(page.locator("h2 a.article-title")).to_have_text("Detail Post")
     expect(page.locator(".article-content")).to_have_text("Detail content")
-    expect(page.locator(".article-metadata")).to_contain_text("alice")
+    expect(page.locator(".article-metadata")).to_contain_text("shahnawaz")
     expect(page.locator(".article-metadata")).to_contain_text(
         display_date(post.date_posted)
     )
@@ -328,7 +330,7 @@ def test_ui_007_unknown_post_shows_404_with_home_link(page, live_server):
 
 
 def test_ui_008_create_post_with_valid_data(page, live_server):
-    create_user("alice")
+    create_user("shahnawaz")
     login_via_ui(page, live_server)
     goto(page, live_server, "/create-post/")
 
@@ -342,11 +344,14 @@ def test_ui_008_create_post_with_valid_data(page, live_server):
         "The post has been created successfully."
     )
     expect(page.locator("h2 a.article-title")).to_have_text("UI Post")
-    assert Post.objects.filter(title="UI Post", author__username="alice").count() == 1
+    assert (
+        Post.objects.filter(title="UI Post", author__username="shahnawaz").count()
+        == 1
+    )
 
 
 def test_ui_008_create_post_rejects_empty_fields(page, live_server):
-    create_user("alice")
+    create_user("shahnawaz")
     login_via_ui(page, live_server)
     goto(page, live_server, "/create-post/")
 
@@ -361,7 +366,7 @@ def test_ui_008_create_post_rejects_empty_fields(page, live_server):
 
 
 def test_ui_008_create_post_rejects_overlong_title(page, live_server):
-    create_user("alice")
+    create_user("shahnawaz")
     login_via_ui(page, live_server)
     goto(page, live_server, "/create-post/")
 
@@ -397,12 +402,12 @@ def test_ui_008_create_post_requires_login(page, live_server):
 
 
 def test_ui_009_profile_displays_authenticated_user(page, live_server):
-    user = create_user("alice", with_profile=True)
+    user = create_user("shahnawaz", with_profile=True)
     login_via_ui(page, live_server)
     goto(page, live_server, "/profile/")
 
-    expect(page.locator("h2.account-heading")).to_have_text("alice")
-    expect(page.locator("p.text-secondary")).to_have_text("alice@example.com")
+    expect(page.locator("h2.account-heading")).to_have_text("shahnawaz")
+    expect(page.locator("p.text-secondary")).to_have_text("shahnawaz@example.com")
     image = page.locator("img.account-img")
     expect(image).to_be_visible()
     assert "default.png" in image.get_attribute("src")
@@ -429,7 +434,7 @@ def test_ui_010_navigation_reflects_authentication_state(page, live_server):
     expect(page.get_by_role("link", name="Create Post", exact=True)).to_have_count(0)
     expect(page.get_by_role("link", name="Logout", exact=True)).to_have_count(0)
 
-    create_user("alice", with_profile=True)
+    create_user("shahnawaz", with_profile=True)
     login_via_ui(page, live_server)
 
     expect(page.get_by_role("link", name="Profile", exact=True)).to_be_visible()
