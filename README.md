@@ -1,10 +1,6 @@
 # Django Blog App
 
-![Blog App Banner](https://i.imgur.com/oN71fj9.jpg)
 
-### Demo 🎥
-
-![BlogApp Demo](https://i.imgur.com/mpntklM.gif)
 
 ### Development 👨‍💻
 **Note:** Use Python 3.12 for the recommended Windows setup.
