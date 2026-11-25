@@ -168,8 +168,7 @@ duration.
 At the end of every run the framework prints a `UI TEST EXECUTION SUMMARY`,
 `BDD TEST EXECUTION SUMMARY` or `TEST EXECUTION SUMMARY`. The
 `Total Test Cases` value counts only the tests **selected for that execution**
-(after marker filtering, `-k`, or explicit deselection), not every test Pytest
-discovered. For example, `python -m pytest -m ui --headed -v` reports only the
+(after marker filtering or `-k`), not every test Pytest discovered. For example, `python -m pytest -m ui --headed -v` reports only the
 selected UI tests:
 
 ```text
