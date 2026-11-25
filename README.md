@@ -76,3 +76,130 @@ To exit the virtual environment:
 ```powershell
 deactivate
 ```
+
+---
+
+## Testing 🧪
+
+All commands below assume the virtual environment is activated and the current
+directory is the repository root.
+
+### 1. Install the test dependencies
+
+```powershell
+python -m pip install -r requirements-test.txt
+python -m playwright install chromium
+```
+
+`requirements-test.txt` installs Pytest, pytest-django, pytest-bdd,
+pytest-playwright and allure-pytest. The second command downloads the Chromium
+browser used by the Playwright UI tests; run `python -m playwright install`
+instead if you want every supported browser.
+
+### 2. Run the full test suite
+
+```powershell
+python -m pytest
+```
+
+No extra flags are required. The configuration in `pytest.ini` already enables:
+
+- verbose progress with `PASSED`, `FAILED`, `SKIPPED` and `ERROR` statuses;
+- short tracebacks with assertion details and expected/actual values;
+- a short summary of failed, errored and skipped tests;
+- the slowest ten test durations;
+- total test count and total execution duration;
+- automatic Allure result generation.
+
+Pytest-django creates and destroys a separate test database automatically; the
+development database (`db.sqlite3`) is not modified.
+
+### 3. Run a subset of the tests
+
+```powershell
+# UI (Playwright) tests
+python -m pytest tests/ui
+
+# BDD (pytest-bdd) tests
+python -m pytest tests/bdd
+
+# By marker
+python -m pytest -m ui
+python -m pytest -m bdd
+
+# A single test
+python -m pytest "tests/ui/test_ui.py::test_ui_001_home_listing_shows_posts_and_opens_detail"
+
+# Tests whose name matches a keyword
+python -m pytest -k login
+
+# List tests without executing them
+python -m pytest --collect-only
+```
+
+### 4. Run UI tests in a visible browser
+
+```powershell
+python -m pytest tests/ui --headed
+```
+
+Choose another engine (install it first, e.g.
+`python -m playwright install firefox`):
+
+```powershell
+python -m pytest tests/ui --browser firefox
+```
+
+### 5. Read the results
+
+Terminal statuses:
+
+| Status | Meaning |
+|---|---|
+| `PASSED` | The test completed and all assertions matched. |
+| `FAILED` | An assertion executed, but the actual result did not match the expected result. |
+| `ERROR` | The test could not run because of a fixture, browser, database or teardown problem. |
+| `SKIPPED` | The test was deliberately skipped. |
+
+Pytest prints a concise summary of every failed, errored and skipped test,
+including the test name and location, followed by the total counts and session
+duration.
+
+Diagnostic files produced by a run:
+
+- `reports/pytest.log` – per-run log with one status line per test.
+- `allure-results/` – Allure result files, regenerated on every run. Failures in
+  UI tests include a screenshot, the page URL/title and captured logs.
+
+### 6. View the Allure report
+
+Pytest writes `allure-results/` automatically. To render it, install the
+[Allure command-line tool](https://allurereport.org/docs/install/) and make sure
+`allure` is on `PATH`:
+
+```powershell
+allure serve allure-results
+```
+
+Or build and open a static report:
+
+```powershell
+allure generate allure-results -o allure-report --clean
+allure open allure-report
+```
+
+`allure-results/`, `allure-report/` and `reports/` are generated folders and are
+ignored by Git.
+
+### 7. Useful execution options
+
+```powershell
+# Show local variables in tracebacks when debugging a failure
+python -m pytest --showlocals
+
+# Re-run only the tests that failed during the previous run
+python -m pytest --lf
+```
+
+Avoid `-x` / `--maxfail=1` for normal runs: by default Pytest continues after a
+failure, so one failing test does not prevent the remaining tests from running.
