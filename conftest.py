@@ -62,6 +62,16 @@ _STATUS_LABELS = {
     "skipped": "SKIPPED",
 }
 
+# If a test fails in more than one phase (for example a failed assertion that is
+# followed by a teardown error), the most severe status is reported for that
+# single selected test so the summary still adds up to the selected total.
+_STATUS_PRECEDENCE = {
+    "PASSED": 0,
+    "SKIPPED": 1,
+    "FAILED": 2,
+    "ERROR": 3,
+}
+
 # ---------------------------------------------------------------------------
 # Small helpers
 # ---------------------------------------------------------------------------
@@ -153,6 +163,36 @@ def _attach_captured_output(item: pytest.Item, report: pytest.TestReport) -> Non
     _attach_text("captured stderr", getattr(report, "capstderr", "") or "")
 
 
+def _record_test_status(config: pytest.Config, report: pytest.TestReport) -> None:
+    """Track one final status per selected test for the execution summary.
+
+    Pytest emits separate setup/call/teardown reports.  Collapsing them into a
+    single entry per node ID keeps ``passed + failed + skipped + errors`` equal
+    to the number of selected test cases.
+    """
+
+    if report.when not in ("setup", "call", "teardown"):
+        return
+
+    if report.failed:
+        status = "FAILED" if report.when == "call" else "ERROR"
+    elif report.skipped:
+        status = "SKIPPED"
+    elif report.when == "call" and report.passed:
+        status = "PASSED"
+    else:
+        return
+
+    statuses = getattr(config, "_framework_test_statuses", None)
+    if statuses is None:
+        statuses = {}
+        config._framework_test_statuses = statuses  # type: ignore[attr-defined]
+
+    previous = statuses.get(report.nodeid)
+    if previous is None or _STATUS_PRECEDENCE[status] >= _STATUS_PRECEDENCE[previous]:
+        statuses[report.nodeid] = status
+
+
 # ---------------------------------------------------------------------------
 # Session configuration
 # ---------------------------------------------------------------------------
@@ -206,6 +246,52 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         platform.python_version(),
         platform.platform(),
     )
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_finish(session: pytest.Session) -> None:
+    """Snapshot the final test selection for the user-facing summary.
+
+    At this point marker filters, ``-k`` and explicit deselections have already
+    been applied, so ``session.items`` contains only the test cases selected for
+    this execution.
+
+    Pytest's terminal reporter counts every collected item and appends
+    ``"N deselected"`` to its collection and final status lines.  For normal
+    executions the framework presents selected tests only, so the reporter is
+    given the selected count and the deselected bucket is removed from its
+    display stats.  The original discovery/selection numbers are preserved in
+    the diagnostic run log instead.
+    """
+
+    config = session.config
+    items = session.items
+    config._framework_selected_total = len(items)  # type: ignore[attr-defined]
+    config._framework_selected_has_ui = any(  # type: ignore[attr-defined]
+        item.get_closest_marker("ui") for item in items
+    )
+    config._framework_selected_has_bdd = any(  # type: ignore[attr-defined]
+        item.get_closest_marker("bdd") for item in items
+    )
+
+    if config.option.collectonly:
+        return
+
+    terminalreporter = config.pluginmanager.getplugin("terminalreporter")
+    if terminalreporter is None:
+        return
+
+    discovered = getattr(terminalreporter, "_numcollected", len(items))
+    deselected = len(getattr(terminalreporter, "stats", {}).get("deselected", []))
+    RUN_LOGGER.info(
+        "collection | discovered=%s selected=%s deselected=%s",
+        discovered,
+        len(items),
+        deselected,
+    )
+
+    terminalreporter._numcollected = len(items)
+    terminalreporter.stats.pop("deselected", None)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
@@ -292,6 +378,63 @@ def pytest_report_header(config: pytest.Config) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Selected-test execution summary
+# ---------------------------------------------------------------------------
+
+
+def pytest_terminal_summary(
+    terminalreporter: pytest.TerminalReporter,
+    exitstatus: int,
+    config: pytest.Config,
+) -> None:
+    """Print a summary that counts only tests selected for this execution.
+
+    Pytest's collection line still shows how many tests were discovered and
+    deselected; this block deliberately reports only the final selection so
+    marker-filtered runs are not presented with the full repository total.
+    """
+
+    if config.option.collectonly:
+        return
+
+    total = getattr(config, "_framework_selected_total", None)
+    if total is None:
+        return
+
+    statuses = getattr(config, "_framework_test_statuses", {})
+    counts = {name: 0 for name in ("PASSED", "FAILED", "SKIPPED", "ERROR")}
+    for status in statuses.values():
+        counts[status] += 1
+
+    has_ui = getattr(config, "_framework_selected_has_ui", False)
+    has_bdd = getattr(config, "_framework_selected_has_bdd", False)
+    if has_ui and not has_bdd:
+        title = "UI TEST EXECUTION SUMMARY"
+    elif has_bdd and not has_ui:
+        title = "BDD TEST EXECUTION SUMMARY"
+    else:
+        title = "TEST EXECUTION SUMMARY"
+
+    terminalreporter.write_line("")
+    terminalreporter.write_line(title, bold=True)
+    terminalreporter.write_line("")
+    terminalreporter.write_line(f"Total Test Cases: {total}")
+    terminalreporter.write_line(f"Passed: {counts['PASSED']}")
+    terminalreporter.write_line(f"Failed: {counts['FAILED']}")
+    terminalreporter.write_line(f"Skipped: {counts['SKIPPED']}")
+    terminalreporter.write_line(f"Errors: {counts['ERROR']}")
+
+    RUN_LOGGER.info(
+        "summary | selected=%s passed=%s failed=%s skipped=%s errors=%s",
+        total,
+        counts["PASSED"],
+        counts["FAILED"],
+        counts["SKIPPED"],
+        counts["ERROR"],
+    )
+
+
+# ---------------------------------------------------------------------------
 # Per-test reporting
 # ---------------------------------------------------------------------------
 
@@ -325,6 +468,13 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
 
     outcome = yield
     report = outcome.get_result()
+
+    try:
+        _record_test_status(item.config, report)
+    except Exception as error:  # noqa: BLE001 - reporting must never break a run
+        RUN_LOGGER.warning(
+            "status tracking failed for %s: %s", item.nodeid, error
+        )
 
     if not report.failed or not ALLURE_AVAILABLE:
         return
