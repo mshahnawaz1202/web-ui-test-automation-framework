@@ -19,7 +19,9 @@ def create_user(
         password=password,
     )
     if with_profile:
-        Profile.objects.create(user=user)
+        # users.signals.create_profile already creates the profile when the
+        # user is saved, so only ensure it exists instead of duplicating it.
+        Profile.objects.get_or_create(user=user)
     return user
 
 

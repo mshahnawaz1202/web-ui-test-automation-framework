@@ -203,3 +203,55 @@ python -m pytest --lf
 
 Avoid `-x` / `--maxfail=1` for normal runs: by default Pytest continues after a
 failure, so one failing test does not prevent the remaining tests from running.
+
+---
+
+## Running UI Tests in Chrome (Visible Browser)
+
+The UI tests use Playwright, and the current project configuration uses
+Playwright's Chromium browser by default. No `--browser` flag is required.
+Chromium is the open-source browser that Playwright installs and drives for
+Chrome/Chromium testing.
+
+The `--headed` flag is the command-line option that tells Playwright to open a
+visible Chromium browser window while the tests execute. Without `--headed`,
+Playwright runs in headless mode.
+
+All commands below assume the virtual environment is activated and the current
+directory is the repository root. The Django application is started
+automatically by pytest-django's `live_server` fixture, so you do not need to run
+`python manage.py runserver` separately.
+
+### Run all UI tests with Chrome visible
+
+```powershell
+python -m pytest -m ui --headed -v
+```
+
+### Run a specific UI test with Chrome visible
+
+```powershell
+python -m pytest tests/ui/test_ui.py::test_ui_001_home_listing_shows_posts_and_opens_detail --headed -v
+```
+
+### Run UI tests in headless mode
+
+```powershell
+python -m pytest -m ui -v
+```
+
+### Headed vs headless mode
+
+- **Headed mode (`--headed`):** opens a visible Chromium browser window while the
+  tests execute, so the interactions can be observed as they happen.
+- **Headless mode:** executes the browser tests in the background without
+  displaying a browser window.
+
+### Troubleshooting
+
+If Playwright reports that Chromium is not installed, download the browser
+binary and then re-run the desired command:
+
+```powershell
+python -m playwright install chromium
+```
