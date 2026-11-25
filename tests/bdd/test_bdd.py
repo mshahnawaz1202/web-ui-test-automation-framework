@@ -15,7 +15,7 @@ def context():
     return {}
 
 
-def make_user(username="alice", email=None, password=PASSWORD):
+def make_user(username="shahnawaz", email=None, password=PASSWORD):
     return get_user_model().objects.create_user(
         username=username,
         email=email or f"{username}@example.com",
@@ -25,8 +25,8 @@ def make_user(username="alice", email=None, password=PASSWORD):
 
 def registration_payload(**overrides):
     data = {
-        "username": "newuser",
-        "email": "newuser@example.com",
+        "username": "hamza",
+        "email": "hamza@example.com",
         "password1": PASSWORD,
         "password2": PASSWORD,
     }
@@ -120,7 +120,7 @@ def submit_email_registration(client, context, email):
 
 @then('a user account is created and the visitor is redirected to "/login/"')
 def account_created_and_redirected(client, context):
-    assert get_user_model().objects.filter(username="newuser").count() == 1
+    assert get_user_model().objects.filter(username="hamza").count() == 1
     response = context["response"]
     assert response.status_code == 302
     assert response.url == "/login/"
@@ -198,9 +198,9 @@ def test_bdd_007_logout():
     pass
 
 
-@given('a registered user "alice" exists')
-def registered_alice(context):
-    context["user"] = make_user("alice")
+@given('a registered user "shahnawaz" exists')
+def registered_shahnawaz(context):
+    context["user"] = make_user("shahnawaz")
 
 
 @given('the registered user is on "/login/"')
@@ -219,7 +219,7 @@ def user_on_login(client, context):
 def submit_valid_login(client, context):
     context["response"] = client.post(
         "/login/",
-        data={"username": "alice", "password": PASSWORD},
+        data={"username": "shahnawaz", "password": PASSWORD},
     )
 
 
@@ -271,7 +271,7 @@ def no_authenticated_session(client):
 
 @given("the user is authenticated")
 def user_is_authenticated(client, context):
-    context["user"] = make_user("alice")
+    context["user"] = make_user("shahnawaz")
     client.force_login(context["user"])
 
 
@@ -487,7 +487,7 @@ def test_bdd_014_reject_invalid_post():
 
 @given("the user is logged in")
 def user_is_logged_in(client, context):
-    context["user"] = make_user("alice")
+    context["user"] = make_user("shahnawaz")
     client.force_login(context["user"])
 
 
@@ -596,7 +596,7 @@ def test_bdd_016_block_anonymous_profile():
 
 @given("the user is logged in and has a profile created by the post-save signal")
 def user_with_signal_profile(client, context):
-    user = make_user("alice")
+    user = make_user("shahnawaz")
     assert Profile.objects.filter(user=user).count() == 1, (
         "users.signals.create_profile is not connected: no Profile was created "
         "for the new User"

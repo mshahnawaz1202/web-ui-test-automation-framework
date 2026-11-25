@@ -3,7 +3,7 @@ Feature: Authentication
 
   @BDD-005
   Scenario: A registered user logs in
-    Given a registered user "alice" exists
+    Given a registered user "shahnawaz" exists
     And the registered user is on "/login/"
     When the user enters the correct username and password and selects Login
     Then the session is authenticated and the browser redirects to "/"
@@ -11,7 +11,7 @@ Feature: Authentication
 
   @BDD-006
   Scenario Outline: Login rejects incorrect credentials
-    Given a registered user "alice" exists
+    Given a registered user "shahnawaz" exists
     And a user is on "/login/"
     When the user enters the username "<username>" and password "<password>" and selects Login
     Then the login page remains visible and an authentication error is shown
@@ -19,7 +19,7 @@ Feature: Authentication
 
     Examples:
       | username | password           |
-      | alice    | WrongPassword!2345 |
+      | shahnawaz | WrongPassword!2345 |
       | unknown  | StrongPass!2345    |
 
   @BDD-007
