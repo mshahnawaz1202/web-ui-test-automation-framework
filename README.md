@@ -108,7 +108,7 @@ No extra flags are required. The configuration in `pytest.ini` already enables:
 - short tracebacks with assertion details and expected/actual values;
 - a short summary of failed, errored and skipped tests;
 - the slowest ten test durations;
-- total test count and total execution duration;
+- selected test count and total execution duration;
 - automatic Allure result generation.
 
 Pytest-django creates and destroys a separate test database automatically; the
@@ -164,6 +164,28 @@ Terminal statuses:
 Pytest prints a concise summary of every failed, errored and skipped test,
 including the test name and location, followed by the total counts and session
 duration.
+
+At the end of every run the framework prints a `UI TEST EXECUTION SUMMARY`,
+`BDD TEST EXECUTION SUMMARY` or `TEST EXECUTION SUMMARY`. The
+`Total Test Cases` value counts only the tests **selected for that execution**
+(after marker filtering, `-k`, or explicit deselection), not every test Pytest
+discovered. For example, `python -m pytest -m ui --headed -v` reports only the
+selected UI tests:
+
+```text
+UI TEST EXECUTION SUMMARY
+
+Total Test Cases: 25
+Passed: 24
+Failed: 1
+Skipped: 0
+Errors: 0
+```
+
+Pytest's discovery and selection details are recorded in the diagnostic run log
+(`reports/pytest.log`), while the terminal output and execution summary report
+only the tests selected for the run. The summary never reports all discovered
+tests as the total.
 
 Diagnostic files produced by a run:
 
